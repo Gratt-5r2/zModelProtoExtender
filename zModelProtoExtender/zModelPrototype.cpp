@@ -52,6 +52,10 @@ namespace GOTHIC_ENGINE {
 
 
 
+  MapArray<zCModelPrototype*, zCModelPrototype*> ModelProtoUniqueList;
+
+
+
   static int PushExternalAni( zCModelAni* ani ) {
     if( !CurrentModel )
       return Invalid;
@@ -61,20 +65,25 @@ namespace GOTHIC_ENGINE {
       return Invalid;
 
     // push ani proto to base ani list
-    int newAniIndex = protoList[0]->SearchNewAniIndex_Union( ani->aniName );
-    protoList[0]->protoAnis.InsertAtPos( ani, newAniIndex );
+    zCModelPrototype* baseProto = protoList[0];
+    int newAniIndex = baseProto->SearchNewAniIndex_Union( ani->aniName );
+    baseProto->protoAnis.InsertAtPos( ani, newAniIndex );
     ani->AddRef();
 
-    // push nullptr to childs prototypes
-    for( int i = 0; i < protoList.GetNum(); i++ ) {
-      zCArraySort<zCModelAni*>& protoAnis = protoList[i]->protoAnis;
-      if( i != 0 )
-        protoAnis.InsertAtPos( Null, newAniIndex );
+    auto& childs = ModelProtoUniqueList[baseProto];
+    if( !childs.IsNull() ) {
 
-      // update next animations after current
-      for( int j = newAniIndex; j < protoAnis.GetNum(); j++ )
-        if( protoAnis[j] )
-          protoAnis[j]->aniID = j;
+      // push nullptr to childs prototypes
+      for( uint i = 0; i < childs.GetNum(); i++ ) {
+        zCArraySort<zCModelAni*>& protoAnis = childs[i]->protoAnis;
+        if( i != 0 )
+          protoAnis.InsertAtPos( Null, newAniIndex );
+
+        // update next animations after current
+        for( int j = newAniIndex; j < protoAnis.GetNum(); j++ )
+          if( protoAnis[j] )
+            protoAnis[j]->aniID = j;
+      }
     }
 
     return newAniIndex;
@@ -87,9 +96,52 @@ namespace GOTHIC_ENGINE {
 
   HOOK Ivk_zCModelPrototype_PrepareAsModelProtoOverlay AS( &zCModelPrototype::PrepareAsModelProtoOverlay, &zCModelPrototype::PrepareAsModelProtoOverlay_Union );
 
+
+
+  void oCAniCtrl_Human::SetAniIDs( oCAniCtrl_Human* other ) {
+    static int length = (int)&dummyLastVar - (int)&s_dead1;
+    memcpy( &s_dead1, &other->s_dead1, length );
+  }
+
+
+
+  void zCModelPrototype::UpdateNpcsAniCtrl() {
+    oCNpc* baseNpc               = CurrentModel->homeVob->CastTo<oCNpc>();
+    zCModelPrototype* baseProto  = CurrentModel->modelProtoList[0];
+    oCAniCtrl_Human* baseAniCtrl = baseNpc->anictrl;
+    if( !baseAniCtrl )
+      return;
+
+    baseAniCtrl->Init( baseNpc );
+
+    auto* list = ogame->GetGameWorld()->voblist_npcs->next;
+    while( list ) {
+      oCNpc* otherNpc = list->data;
+      oCAniCtrl_Human* otherAniCtrl = otherNpc->anictrl;
+
+      // Check animation controller for other npc.
+      // If its null - update not needed.
+      if( otherNpc != baseNpc && otherAniCtrl ) {
+        zCModelPrototype* otherProto = otherNpc->GetModel()->modelProtoList[0];
+
+        // Set animation IDs as equal
+        // for identity NPC model
+        if( otherProto == baseProto )
+          otherAniCtrl->SetAniIDs( baseAniCtrl );
+      }
+
+      list = list->next;
+    }
+  }
+
+
+
   int zCModelPrototype::PrepareAsModelProtoOverlay_Union( zCModelPrototype* baseModelProto ) {
     if( !baseModelProto )
       return Invalid;
+
+    if( ModelProtoUniqueList[baseModelProto].IsNull() )
+      ModelProtoUniqueList.Insert( baseModelProto, baseModelProto );
 
     zCArraySort<zCModelAni*> aniListEquals;
     for( int i = 0; i < baseModelProto->protoAnis.GetNum(); i++ )
@@ -113,11 +165,9 @@ namespace GOTHIC_ENGINE {
       }
     }
 
-    if( UpdateAniCtrl ) {
-      oCNpc* npc = CurrentModel->homeVob->CastTo<oCNpc>();
-      if( npc && npc->anictrl )
-        npc->anictrl->Init( npc );
-    }
+    ModelProtoUniqueList.Insert( baseModelProto, this );
+    if( UpdateAniCtrl && CurrentModel )
+      UpdateNpcsAniCtrl();
 
     protoAnis = aniListEquals;
     this->baseModelProto = baseModelProto;

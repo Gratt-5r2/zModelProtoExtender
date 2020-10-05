@@ -338,3 +338,5 @@ ASALocalRun/
 
 # BeatPulse healthcheck temp database
 healthchecksdb
+/zModelProtoExtender/G2A Release
+/zModelProtoExtender/MP Release

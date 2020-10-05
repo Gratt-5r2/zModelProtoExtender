@@ -3,3 +3,4 @@
 // User API for oCAniCtrl_Human
 // Add your methods here
 
+void SetAniIDs( oCAniCtrl_Human* other );
