@@ -27,8 +27,6 @@ namespace GOTHIC_ENGINE {
       player->GetModel()->RemoveModelProtoOverlay( "HUMANS_SPRINT.MDS" );
     }
 #endif
-
-    screen->Print( 1000, 2000, (int)ModelProtoUniqueList.GetNum() );
   }
 
   void Game_SaveBegin() {

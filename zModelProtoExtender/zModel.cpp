@@ -2,7 +2,7 @@
 // Union SOURCE file
 
 namespace GOTHIC_ENGINE {
-  HOOK Hook_zCModel_GetAniIDFromAniName_Union AS( &zCModel::GetAniIDFromAniName, &zCModel::GetAniIDFromAniName_Union );
+  HOOK Hook_zCModel_GetAniIDFromAniName_Union PATCH( &zCModel::GetAniIDFromAniName, &zCModel::GetAniIDFromAniName_Union );
 
   int zCModel::GetAniIDFromAniName_Union( const zSTRING& aniName ) const {
     for( int i = 0; i < modelProtoList.GetNum(); i++ ) {
@@ -18,7 +18,7 @@ namespace GOTHIC_ENGINE {
 
 
 
-  HOOK Hook_zCModel_ApplyModelProtoOverlay AS( &zCModel::ApplyModelProtoOverlay, &zCModel::ApplyModelProtoOverlay_Union );
+  HOOK Hook_zCModel_ApplyModelProtoOverlay PATCH( &zCModel::ApplyModelProtoOverlay, &zCModel::ApplyModelProtoOverlay_Union );
 
   int zCModel::ApplyModelProtoOverlay_Union( const zSTRING& mdsFileName ) {
     if( modelProtoList.GetNum() == 0 )
@@ -27,9 +27,6 @@ namespace GOTHIC_ENGINE {
     CurrentModel = this;
 
     zCModelPrototype* modelProto = zCModelPrototype::Load( mdsFileName, modelProtoList[0] );
-
-    // TO DO
-    // CheckAndApplyModelContext( modelProto );
 
     bool_t Ok = False;
     if( modelProto ) {
@@ -44,8 +41,7 @@ namespace GOTHIC_ENGINE {
 
 
 
-
-  HOOK Hook_oCNpc_ApplyOverlay AS( &oCNpc::ApplyOverlay, &oCNpc::ApplyOverlay_Union );
+  HOOK Hook_oCNpc_ApplyOverlay PATCH( &oCNpc::ApplyOverlay, &oCNpc::ApplyOverlay_Union );
 
   int oCNpc::ApplyOverlay_Union( const zSTRING& mdsFileName__ ) {
 
@@ -64,7 +60,7 @@ namespace GOTHIC_ENGINE {
 
 
 
-  HOOK Hook_zCModel_RemoveModelProtoOverlay AS( &zCModel::RemoveModelProtoOverlay, &zCModel::RemoveModelProtoOverlay_Union );
+  HOOK Hook_zCModel_RemoveModelProtoOverlay PATCH( &zCModel::RemoveModelProtoOverlay, &zCModel::RemoveModelProtoOverlay_Union );
 
   void zCModel::RemoveModelProtoOverlay_Union( zCModelPrototype* modelProto ) {
     CurrentModel = this;
@@ -76,14 +72,13 @@ namespace GOTHIC_ENGINE {
     // Hmmm, this overlay will works a some
     // seconds for a 'soft' anis replacing.
     DelayedRelease<5000>( modelProto );
-
     CurrentModel = Null;
   }
 
 
 
 
-  HOOK Hook_zCModel_RemoveModelProtoOverlayByName AS( &zCModel::RemoveModelProtoOverlay, &zCModel::RemoveModelProtoOverlayByName_Union );
+  HOOK Hook_zCModel_RemoveModelProtoOverlayByName PATCH( &zCModel::RemoveModelProtoOverlay, &zCModel::RemoveModelProtoOverlayByName_Union );
 
   // So... This function has inline of
   // overload with 'zCModelPrototype*', fix it...
@@ -95,7 +90,6 @@ namespace GOTHIC_ENGINE {
       if( modelProtoList[i]->modelProtoName == realFileName )
         return RemoveModelProtoOverlay_Union( modelProtoList[i] );
   }
-
 
 
 
@@ -111,7 +105,6 @@ namespace GOTHIC_ENGINE {
           return StopAnisLayerRange( 0, 9999 );
     }
   }
-
 
 
 
@@ -132,7 +125,6 @@ namespace GOTHIC_ENGINE {
 
 
 
-
   // Find active animation by name
   zCModelAniActive* zCModel::GetActiveAni( const zSTRING& aniName ) {
     for( int i = 0; i < numActiveAnis; i++ )
@@ -141,7 +133,6 @@ namespace GOTHIC_ENGINE {
     
     return Null;
   }
-
 
 
 
@@ -168,42 +159,5 @@ namespace GOTHIC_ENGINE {
     }
 
     return true;
-  }
-
-
-
-  // TO DO
-  // Add new animations with new names
-  void zCModel::CheckAndApplyModelContext( zCModelPrototype* modelProto ) {
-    string contextName = modelProto->modelProtoName + ".CONTEXT";
-    string contextData;
-    contextData.ReadFromVdf( contextName, VDF_DEFAULT );
-
-    rowString contextRows = contextData;
-    for( uint i = 0; i < contextRows.GetNum(); i++ ) {
-      string& row = contextRows[i];
-      Array<string> tokens = row.Split( "->" );
-
-      if( tokens.GetNum() != 2 )
-        Message::Fatal( "Invalid context syntax in " +  A i + " line.", contextName );
-
-      RenameModelAni(
-        modelProto,
-        tokens[0].Shrink().Upper(),
-        tokens[1].Shrink().Upper()
-        );
-    }
-  }
-
-
-
-  void zCModel::RenameModelAni( zCModelPrototype* modelProto, zSTRING oldName, zSTRING newName ) {
-    int index = modelProto->SearchNewAniIndex_Union( oldName );
-    if( index == Invalid )
-      return;
-
-    zCModelAni* ani = modelProto->protoAnis[index];
-    if( ani )
-      ani->aniName = newName;
   }
 }

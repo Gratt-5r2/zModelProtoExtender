@@ -3,4 +3,5 @@
 // User API for oCAniCtrl_Human
 // Add your methods here
 
-void SetAniIDs( oCAniCtrl_Human* other );
+void CopyAniIndexes( oCAniCtrl_Human* other );
+int StartAni_Union( int, int );

@@ -3,3 +3,4 @@
 // User API for zCModelNodeInst
 // Add your methods here
 
+void AddNodeAni_Union( zCModelAniActive* );

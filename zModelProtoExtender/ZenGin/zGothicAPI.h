@@ -3,7 +3,6 @@
 #ifndef __ZGOTHIC_API_H__
 #define __ZGOTHIC_API_H__
 
-
 #define Engine_G1  1
 #define Engine_G1A 2
 #define Engine_G2  3
@@ -34,6 +33,5 @@
 #include "Gothic_II_Addon/API/zEngine.h"
 #include "Gothic_II_Addon/VFTable_G2A.h"
 #pragma warning(default:4244)
-
 
 #endif // __ZGOTHIC_API_H__

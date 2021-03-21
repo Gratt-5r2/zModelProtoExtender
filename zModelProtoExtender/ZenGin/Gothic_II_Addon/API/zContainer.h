@@ -319,7 +319,7 @@ namespace Gothic_II_Addon {
       numAlloc = startSize;
       array = 0;
       if( startSize > 0 ) {
-        array = new T()[startSize];
+        array = new T[startSize];
       }
       SetCompare( zArraySortDefaultCompare );
     }

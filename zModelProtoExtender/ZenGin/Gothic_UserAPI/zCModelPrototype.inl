@@ -9,5 +9,6 @@ int __fastcall SearchNewAniIndex_Union( const zSTRING& aniName ) const;
 int PrepareAsModelProtoOverlay_Union( zCModelPrototype* baseModelProto );
 static zCModelPrototype* Load_Union( zSTRING const&, zCModelPrototype* );
 static zCModelPrototype* SearchName_Union( zSTRING );
-static void UpdateNpcsAniCtrl();
+static void UpdateNpcsAniCtrl( zCModelPrototype* baseProto );
+void CopyAnimations( zCModelPrototype* proto );
 int AddRef() { return ++refCtr; }
