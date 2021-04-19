@@ -160,4 +160,78 @@ namespace GOTHIC_ENGINE {
 
     return true;
   }
+
+
+
+  HOOK Hook_zCModel_CopyProtoNodeList PATCH( &zCModel::CopyProtoNodeList, &zCModel::CopyProtoNodeList_Union );
+
+  void zCModel::CopyProtoNodeList_Union() {
+    if( modelProtoList.GetNum() <= 0 || !modelProtoList[0] )
+      return;
+
+    int num = modelProtoList[0]->nodeList.GetNum();
+    Array<zCModelNodeInst*> preNodeList;
+
+    for( int i = 0; i < num; i++ ) {
+      zCModelNode* node = modelProtoList[0]->nodeList[i];
+      zCModelNode* parent = node->parentNode;
+      zCModelNodeInst* instNode = new zCModelNodeInst( node );
+      if( parent )
+        instNode->parentNode = SearchNode( parent->nodeName );
+
+      if( instNode->protoNode->nodeName == "" )
+        cmd << "EMPTY NODE NAME!!!" << endl;
+
+      node->lastInstNode = instNode;
+      nodeList.Insert( instNode );
+    }
+  }
+
+
+
+  HOOK Hook_zCModel_Destructor AS( 0x00577CC0, &zCModel::Destructor );
+
+  void zCModel::Destructor() {
+    //
+    for( int j = 0; j < modelProtoList.GetNumInList(); j++ ) {
+      modelProtoList[j]->Release();
+    };
+    modelProtoList.DeleteList();
+
+    m_listOfVoiceHandles.DeleteList();
+
+    // ACHTUNG: Meshes gehoeren immer den MeshLibs und muessen deshalb nicht extra released werden !
+    RemoveMeshLibAll();
+
+    // SoftSkins
+    for( int i = 0; i < meshSoftSkinList.GetNum(); i++ )
+      meshSoftSkinList[i]->Release();
+    meshSoftSkinList.DeleteList();
+
+    // evtl. 'uebergebliebene' Meshes aus den Nodes entfernen
+    for( int i = 0; i < nodeList.GetNum(); i++ )
+      nodeList[i]->SetNodeVisualS( 0, 0 );
+
+    //
+    RemoveAllAniAttachments();
+
+    //cmd << "#1" << endl;
+    // Nodes loeschen (am Ende)
+    //if( nodeList.GetNum() > 0 )
+    //  delete[]( nodeList[0] );
+    //for( int i = 0; i < nodeList.GetNum(); i++ ) {
+    //  cmd << "  del " << nodeList[i]->protoNode->nodeName << endl;
+    //  delete nodeList[i];
+    //  nodeList[i] = 0;
+    //}
+    //nodeList.DeleteList();
+    //cmd << "#2" << endl;
+
+    //
+    delete[] aniHistoryList; aniHistoryList = 0;
+    delete[] activeAniList; activeAniList = 0;
+    activeAniList = 0;
+    homeVob = 0;
+    numActiveAnis = 0;
+  };
 }

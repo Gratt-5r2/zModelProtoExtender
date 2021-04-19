@@ -13,3 +13,5 @@ void ActivateAdditionalAnis( zCModelPrototype* modelProto );
 void DeactivateAdditionalAnis( zCModelPrototype* modelProto );
 void CheckAndApplyModelContext( zCModelPrototype* modelProto );
 void RenameModelAni( zCModelPrototype* modelProto, zSTRING oldName, zSTRING newName );
+void CopyProtoNodeList_Union();
+void Destructor();
