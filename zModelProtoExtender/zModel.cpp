@@ -170,7 +170,6 @@ namespace GOTHIC_ENGINE {
       return;
 
     int num = modelProtoList[0]->nodeList.GetNum();
-    Array<zCModelNodeInst*> preNodeList;
 
     for( int i = 0; i < num; i++ ) {
       zCModelNode* node = modelProtoList[0]->nodeList[i];
@@ -188,50 +187,29 @@ namespace GOTHIC_ENGINE {
   }
 
 
-
-  HOOK Hook_zCModel_Destructor AS( 0x00577CC0, &zCModel::Destructor );
+  // FIXME!!! Activate the first block after release of a 1.0k!!!
+#if 0
+  HOOK Hook_zCModel_Destructor PATCH( &zCModel::~zCModel, &zCModel::Destructor );
+#else
+#if ENGINE == Engine_G1
+  HOOK Hook_zCModel_Destructor PATCH( 0x0055E4F0, &zCModel::Destructor );
+#endif
+#if ENGINE == Engine_G1A
+  HOOK Hook_zCModel_Destructor PATCH( 0x00576880, &zCModel::Destructor );
+#endif
+#if ENGINE == Engine_G2
+  HOOK Hook_zCModel_Destructor PATCH( 0x00572A10, &zCModel::Destructor );
+#endif
+#if ENGINE == Engine_G2A
+  HOOK Hook_zCModel_Destructor PATCH( 0x00577CC0, &zCModel::Destructor );
+#endif
+#endif
 
   void zCModel::Destructor() {
-    //
-    for( int j = 0; j < modelProtoList.GetNumInList(); j++ ) {
-      modelProtoList[j]->Release();
-    };
-    modelProtoList.DeleteList();
-
-    m_listOfVoiceHandles.DeleteList();
-
-    // ACHTUNG: Meshes gehoeren immer den MeshLibs und muessen deshalb nicht extra released werden !
-    RemoveMeshLibAll();
-
-    // SoftSkins
-    for( int i = 0; i < meshSoftSkinList.GetNum(); i++ )
-      meshSoftSkinList[i]->Release();
-    meshSoftSkinList.DeleteList();
-
-    // evtl. 'uebergebliebene' Meshes aus den Nodes entfernen
-    for( int i = 0; i < nodeList.GetNum(); i++ )
-      nodeList[i]->SetNodeVisualS( 0, 0 );
-
-    //
-    RemoveAllAniAttachments();
-
-    //cmd << "#1" << endl;
-    // Nodes loeschen (am Ende)
-    //if( nodeList.GetNum() > 0 )
-    //  delete[]( nodeList[0] );
-    //for( int i = 0; i < nodeList.GetNum(); i++ ) {
-    //  cmd << "  del " << nodeList[i]->protoNode->nodeName << endl;
-    //  delete nodeList[i];
-    //  nodeList[i] = 0;
-    //}
-    //nodeList.DeleteList();
-    //cmd << "#2" << endl;
-
-    //
-    delete[] aniHistoryList; aniHistoryList = 0;
-    delete[] activeAniList; activeAniList = 0;
-    activeAniList = 0;
-    homeVob = 0;
-    numActiveAnis = 0;
+    auto nodes = nodeList;
+    THISCALL( Hook_zCModel_Destructor )();
+    for( int i = 0; i < nodes.GetNum(); i++ )
+      if( nodes[i] )
+        delete nodes[i];
   };
 }

@@ -171,7 +171,6 @@ namespace GOTHIC_ENGINE {
         if( newIndex != Invalid ) {
           aniListEquals.InsertAtPos( ani, newIndex );
           UpdateAniCtrl = true;
-          // cmd << "New animation injected: " << ani->aniName << "  from  " << modelProtoName << endl;
         }
       }
     }
@@ -208,7 +207,6 @@ namespace GOTHIC_ENGINE {
       if( file.EndWith( MDS ) || file.EndWith( MSB ) )
         protoFileList |= file.GetPattern( "\\", ".", -1 );
     }
-    // zCModelNodeInst
 
     // Find all MDS or MSB scripts
     // in physical file list
@@ -220,6 +218,8 @@ namespace GOTHIC_ENGINE {
       if( file.EndWith( MDS ) || file.EndWith( MSB ) )
         protoFileList |= file.GetPattern( "\\", ".", -1 );
     }
+
+    protoFileList.QuickSort();
 
     delete[] files;
     return protoFileList;
@@ -237,7 +237,7 @@ namespace GOTHIC_ENGINE {
     for( uint i = 0; i < protoFileList.GetNum(); i++ )
       if( protoFileList[i].StartWith( start ) && protoFileList[i] != (string&)proto->modelProtoName )
         childFileList += protoFileList[i];
-    
+
     return childFileList;
   }
 
@@ -245,7 +245,7 @@ namespace GOTHIC_ENGINE {
 
   void zCModelPrototype::CopyAnimationsFrom( zCModelPrototype* proto ) {
     if( protoAnis.GetNum() != proto->protoAnis.GetNum() ) {
-      cmd << "Bad copy anims: " << protoAnis.GetNum() << "  " << proto->protoAnis.GetNum() << " from " << proto->modelProtoName << endl;
+      cmd << Col16( CMD_RED | CMD_RED ) << "zModelProtoExtender: Bad copy anims: " << protoAnis.GetNum() << "  " << proto->protoAnis.GetNum() << " from " << proto->modelProtoName << Col16() << endl;
       return;
     }
 
@@ -254,15 +254,17 @@ namespace GOTHIC_ENGINE {
     for( int i = 0; i < protoAnis.GetNum(); i++ ) {
       zCModelAni*& aniOld = protoAnis[i];
       zCModelAni*& aniNew = proto->protoAnis[i];
+      zCModelAni*  aniTmp = Null;
 
       if( aniNew == Null )
         continue;
 
-      if( aniOld != Null )
-        aniOld->Release();
-
+      // Move animation from new prototype
+      // to current and reserve current
+      // animation in new prototype
+      aniTmp = aniOld;
       aniOld = aniNew;
-      aniNew->AddRef();
+      aniNew = aniTmp;
     }
   }
   
@@ -279,11 +281,6 @@ namespace GOTHIC_ENGINE {
 
     BaseModelProto = baseProto;
     proto = Hook_zCModelPrototype_Load( protoName, baseProto );
-    //proto->EquateNodeListFromProto( baseProto );
-    for( uint i = 0; i < proto->nodeList.GetNum(); i++ ) 		{
-      if( proto->nodeList[i]->nodeName == "" )
-        Message::Box( "Empty SOURCE " + proto->modelProtoName );
-    }
     BaseModelProto = Null;
 
     if( proto )
@@ -302,15 +299,9 @@ namespace GOTHIC_ENGINE {
 
     auto& injectedList = InjectedProtoList[this];
     if( !injectedList.IsNull() ) {
-      cmd << "  ~" << this->modelProtoName << endl;
-      
-      for( zCModelPrototype* proto : injectedList ) {
-        proto->nodeList.DeleteList();
+      for each( zCModelPrototype* proto in injectedList )
         delete proto;
-      }
     }
-    else if( this->modelProtoName.HasWord( "REMASTER" ) )
-      cmd << "  ~  " << this->modelProtoName << endl;
 
     InjectedProtoList.Remove( this );
 
@@ -341,9 +332,7 @@ namespace GOTHIC_ENGINE {
     // objects from external prototypes.
     for( uint i = 0; i < childs.GetNum(); i++ ) {
       zCModelPrototype* childProto = InjectExternalModelProto( childs[i] + ".MDS" );
-
       if( childProto ) {
-        cmd << "Inject: " << modelProtoName << "  <-  " << childProto->modelProtoName << endl;
         CopyAnimationsFrom( childProto );
         InjectedProtoList.Insert( this, childProto );
       }
@@ -356,7 +345,7 @@ namespace GOTHIC_ENGINE {
     if( nodeList.GetNum() != baseProto->nodeList.GetNum() )
       return false;
 
-    for( uint i = 0; i < nodeList.GetNum(); i++ )
+    for( int i = 0; i < nodeList.GetNum(); i++ )
       if( nodeList[i]->nodeName != baseProto->nodeList[i]->nodeName )
         return false;
 
@@ -371,8 +360,17 @@ namespace GOTHIC_ENGINE {
 
 
 
-  void zCModelPrototype::EquateNodeListFromProto( zCModelPrototype* baseProto ) {
-    if( !NeedToEqualateNodes || !baseProto || NodeListsIsEqual( baseProto ) )
+  static void CopyNodeProperties( zCModelNode* dst, zCModelNode* src ) {
+    dst->nodeName        = src->nodeName;
+    dst->trafo           = src->trafo;
+    dst->trafoObjToWorld = src->trafoObjToWorld;
+    dst->translation     = src->translation;
+  }
+
+
+
+  void zCModelPrototype::EqualizeNodeListToProto( zCModelPrototype* sourceProto ) {
+    if( !NeedToEqualateNodes || !sourceProto || NodeListsIsEqual( sourceProto ) )
       return;
     
     // Based on the node list, a new הרûו should be created
@@ -380,37 +378,43 @@ namespace GOTHIC_ENGINE {
     // nodes and ends with injected nodes. That will allow
     // to use only the necessary nodes in animations.
     Array<zCModelNode*> injectedNodes( nodeList.GetArray(), nodeList.GetNum() );
-    Array<zCModelNode*> sourceNodes( baseProto->nodeList.GetArray(), baseProto->nodeList.GetNum() );
+    Array<zCModelNode*> sourceNodes( sourceProto->nodeList.GetArray(), sourceProto->nodeList.GetNum() );
     Array<zCModelNode*> compatibleNodeList;
+    zCModelNode* rootNode = sourceNodes[0];
 
     for( uint i = 0; i < sourceNodes.GetNum(); i++ ) {
       uint index = injectedNodes.SearchEqual( sourceNodes[i]->nodeName );
       if( index != Invalid ) {
-        zCModelNode* node               = injectedNodes[index];
-        compatibleNodeList             += node;
-        sourceNodes[i]->trafo           = node->trafo;
-        sourceNodes[i]->trafoObjToWorld = node->trafoObjToWorld;
-        sourceNodes[i]->translation     = node->translation;
-        injectedNodes.FastRemoveAt( index );
+        zCModelNode* node   = sourceNodes[i];
+        compatibleNodeList += node;
+        CopyNodeProperties( node, injectedNodes[index] );
+        injectedNodes.RemoveAt( index );
       }
       else {
-        zCModelNode* node     = new zCModelNode();
-        node->parentNode      = nodeList[0];
-        node->nodeName        = sourceNodes[i]->nodeName;
-        compatibleNodeList   += node;
-        node->trafo           = sourceNodes[i]->trafo;
-        node->trafoObjToWorld = sourceNodes[i]->trafoObjToWorld;
-        node->translation     = sourceNodes[i]->translation;
+        zCModelNode* node   = new zCModelNode();
+        node->parentNode    = rootNode;
+        compatibleNodeList += node;
+        CopyNodeProperties( node, sourceNodes[i] );
       }
+
+      sourceNodes.RemoveAt( i-- );
     }
 
     // Remaining nodes need to add
     // to the backward compatibility.
-    compatibleNodeList += injectedNodes;
+    // compatibleNodeList += injectedNodes;
+    for( uint i = 0; i < injectedNodes.GetNum(); i++ ) 		{
+      zCModelNode* node   = new zCModelNode();
+      node->parentNode    = rootNode;
+      compatibleNodeList += node;
+      CopyNodeProperties( node, injectedNodes[i] );
+    }
 
-    nodeList.DeleteList();
+    injectedNodes.Clear();
+
+    sourceProto->nodeList.DeleteList();
     for( uint i = 0; i < compatibleNodeList.GetNum(); i++ )
-      nodeList.Insert( compatibleNodeList[i] );
+      sourceProto->nodeList.Insert( compatibleNodeList[i] );
 
     // Update animation node indexes. That indexes
     // sould be in the source node list range.
@@ -423,8 +427,6 @@ namespace GOTHIC_ENGINE {
         nodeIndex = compatibleNodeList.SearchEqual( nodeName );
       }
     }
-
-    baseProto->nodeList = nodeList;
   }
 
 
@@ -435,6 +437,16 @@ namespace GOTHIC_ENGINE {
 
 
 
+  // 
+  /*zCModelNodeInst::~zCModelNodeInst() {
+    zRELEASE( nodeVisual );
+    parentNode = 0;
+    protoNode = 0;
+  };*/
+
+
+
+#if ENGINE >= Engine_G2
   HOOK Hook_zCModelPrototype_ReadModelMSB PATCH( &zCModelPrototype::ReadModelMSB, &zCModelPrototype::ReadModelMSB_Union );
 
   int zCModelPrototype::ReadModelMSB_Union( zCFileBIN& file ) {
@@ -444,8 +456,21 @@ namespace GOTHIC_ENGINE {
     // overlay is inserted with a different skeleton, bones
     // of the inserted one are adapt to bones of the original.
     // And then the indices of all animations are changed.
-    EquateNodeListFromProto( BaseModelProto );
+    EqualizeNodeListToProto( BaseModelProto );
 
     return Ok;
   }
+#else
+  HOOK Hook_zCModelPrototype_ReadModel PATCH( &zCModelPrototype::ReadModel, &zCModelPrototype::ReadModel_Union );
+
+  void zCModelPrototype::ReadModel_Union() {
+    THISCALL( Hook_zCModelPrototype_ReadModel )();
+
+    // Equalization of node lists is needed so that when an
+    // overlay is inserted with a different skeleton, bones
+    // of the inserted one are adapt to bones of the original.
+    // And then the indices of all animations are changed.
+    EqualizeNodeListToProto( BaseModelProto );
+  }
+#endif
 }

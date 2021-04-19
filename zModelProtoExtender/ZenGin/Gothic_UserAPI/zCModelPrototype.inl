@@ -15,10 +15,15 @@ static void UpdateNpcsAniCtrl( zCModelPrototype* baseProto );
 void CopyAnimationsFrom( zCModelPrototype* proto );
 int AddRef() { return ++refCtr; }
 int ReadAniEnumMSB_Union( const int, zCFileBIN& );
-void EquateNodeListFromProto( zCModelPrototype* );
+void EqualizeNodeListToProto( zCModelPrototype* );
 bool NodeListsIsEqual( zCModelPrototype* );
 zCModelPrototype* GetRootModelProto();
 int Release_Union();
+#if ENGINE >= Engine_G2
 int ReadModelMSB_Union( zCFileBIN& file );
+#else
+void ReadModel_Union();
+#endif
+void Clear_Union();
 
 static zCModelPrototype* Load_Union2( zSTRING const&, zCModelPrototype* );

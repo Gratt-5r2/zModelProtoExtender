@@ -7,6 +7,18 @@ namespace GOTHIC_ENGINE {
   // Your code ...
   
   void Game_Entry() {
+#if ENGINE == Engine_G1
+    PATCH_EXECUTE( HEX @0x0055E60B = 'EB 29' );
+#endif
+#if ENGINE == Engine_G1A
+    PATCH_EXECUTE( HEX @0x0057699C = 'EB 29' );
+#endif
+#if ENGINE == Engine_G2
+    PATCH_EXECUTE( HEX @0x00572B4A = 'EB 29' );
+#endif
+#if ENGINE == Engine_G2A
+    PATCH_EXECUTE( HEX @0x00577DFA = 'EB 29' );
+#endif
   }
 
   void Game_Init() {
