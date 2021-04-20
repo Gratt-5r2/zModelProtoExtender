@@ -27,3 +27,14 @@ void ReadModel_Union();
 void Clear_Union();
 
 static zCModelPrototype* Load_Union2( zSTRING const&, zCModelPrototype* );
+
+
+struct TDelayedReleaseContext {
+  zCModelPrototype* Proto;
+  uint StartTime;
+};
+
+static Array<TDelayedReleaseContext> DelayedReleaseQueue;
+static void UpdateDelayedReleaseQueue();
+void DelayedRelease();
+void DeleteFromDelayedReleaseQueue();

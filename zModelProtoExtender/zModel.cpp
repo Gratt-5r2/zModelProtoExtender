@@ -71,7 +71,11 @@ namespace GOTHIC_ENGINE {
 
     // Hmmm, this overlay will works a some
     // seconds for a 'soft' anis replacing.
-    DelayedRelease<5000>( modelProto );
+    if( IsInGame )
+      modelProto->DelayedRelease();
+    else
+      modelProto->Release();
+
     CurrentModel = Null;
   }
 

@@ -306,6 +306,7 @@ namespace GOTHIC_ENGINE {
     InjectedProtoList.Remove( this );
 
     refCtr = 1;
+    DeleteFromDelayedReleaseQueue();
     delete this;
     return 0;
   }
@@ -437,15 +438,6 @@ namespace GOTHIC_ENGINE {
 
 
 
-  // 
-  /*zCModelNodeInst::~zCModelNodeInst() {
-    zRELEASE( nodeVisual );
-    parentNode = 0;
-    protoNode = 0;
-  };*/
-
-
-
 #if ENGINE >= Engine_G2
   HOOK Hook_zCModelPrototype_ReadModelMSB PATCH( &zCModelPrototype::ReadModelMSB, &zCModelPrototype::ReadModelMSB_Union );
 
@@ -473,4 +465,42 @@ namespace GOTHIC_ENGINE {
     EqualizeNodeListToProto( BaseModelProto );
   }
 #endif
+
+
+
+  Array<zCModelPrototype::TDelayedReleaseContext> zCModelPrototype::DelayedReleaseQueue;
+
+  void zCModelPrototype::UpdateDelayedReleaseQueue() {
+    static uint delay = 5000;
+    uint now = Timer::GetTime();
+
+    for( uint i = 0; i < DelayedReleaseQueue.GetNum(); i++ ) {
+      auto& context = DelayedReleaseQueue[i];
+      if( now - context.StartTime < delay )
+        continue;
+
+      DelayedReleaseQueue.RemoveAt( i-- );
+      cmd << context.Proto->modelProtoName << " was released" << endl;
+      context.Proto->Release();
+    }
+  }
+
+
+
+  void zCModelPrototype::DelayedRelease() {
+    auto& context = DelayedReleaseQueue.Create();
+    context.Proto = this;
+    context.StartTime = Timer::GetTime();
+  }
+
+
+
+  void zCModelPrototype::DeleteFromDelayedReleaseQueue() {
+    for( uint i = 0; i < DelayedReleaseQueue.GetNum(); i++ ) {
+      if( DelayedReleaseQueue[i].Proto == this ) {
+        DelayedReleaseQueue.RemoveAt( i );
+        return;
+      }
+    }
+  }
 }

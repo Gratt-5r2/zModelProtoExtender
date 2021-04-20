@@ -39,6 +39,8 @@ namespace GOTHIC_ENGINE {
       player->GetModel()->RemoveModelProtoOverlay( "HUMANS_SPRINT.MDS" );
     }
 #endif
+
+    zCModelPrototype::UpdateDelayedReleaseQueue();
   }
 
   void Game_SaveBegin() {
