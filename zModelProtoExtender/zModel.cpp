@@ -139,7 +139,7 @@ namespace GOTHIC_ENGINE {
   // Replace current active animation
   // to other animation with same name
   bool zCModel::ReplaceActiveAni( zCModelAni* ani ) {
-    if( !ani )
+    if( !IsInGame || !ani )
       return false;
 
     zCModelAniActive* aniActive = GetActiveAni( ani->aniName );
