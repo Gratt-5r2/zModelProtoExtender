@@ -475,22 +475,38 @@ namespace GOTHIC_ENGINE {
     uint now = Timer::GetTime();
 
     for( uint i = 0; i < DelayedReleaseQueue.GetNum(); i++ ) {
-      auto& context = DelayedReleaseQueue[i];
+      auto context = DelayedReleaseQueue[i];
       if( now - context.StartTime < delay )
         continue;
 
       DelayedReleaseQueue.RemoveAt( i-- );
-      cmd << context.Proto->modelProtoName << " was released" << endl;
-      context.Proto->Release();
+      string releasedProtoName = context.Proto->modelProtoName;
+      int release;
+      
+      for( uint j = 0; j < context.ReleasesCount; j++ )
+        release = context.Proto->Release();
+
+      cmd << releasedProtoName << " was released " << release << endl;
     }
   }
 
 
 
   void zCModelPrototype::DelayedRelease() {
+    uint now = Timer::GetTime();
+    for( uint i = 0; i < DelayedReleaseQueue.GetNum(); i++ ) {
+      auto& context = DelayedReleaseQueue[i];
+      if( context.Proto == this ) {
+        context.StartTime = now;
+        context.ReleasesCount++;
+        return;
+      }
+    }
+
     auto& context = DelayedReleaseQueue.Create();
     context.Proto = this;
-    context.StartTime = Timer::GetTime();
+    context.StartTime = now;
+    context.ReleasesCount = 1;
   }
 
 
@@ -498,6 +514,7 @@ namespace GOTHIC_ENGINE {
   void zCModelPrototype::DeleteFromDelayedReleaseQueue() {
     for( uint i = 0; i < DelayedReleaseQueue.GetNum(); i++ ) {
       if( DelayedReleaseQueue[i].Proto == this ) {
+        cmd << "unrelease " << this->modelProtoName << endl;
         DelayedReleaseQueue.RemoveAt( i );
         return;
       }
